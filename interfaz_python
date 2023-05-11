@@ -1,1 +1,119 @@
+#AUTOR: CARLOS ESCOBAR
+#FECHA DE CREACIÓN: 08/05/2023
+from PyQt5 import QtCore, QtGui, QtWidgets
+import sys
+import serial
+#LIBRERÍAS NECESARIAS PARA ADAFRUIT
+import time
+from Adafruit_IO import Client
+aio = Client('caescobar06', 'aio_aRnS33IdQCy58XKIeJfPIYXzSVIQ')
+#FIN DE LAS LIBRERÍAS PARA ADAFRUIT
+
+
+
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow") #NOMBRE DE LA VENTANA PRINCIPAL
+        MainWindow.resize(383, 420)#TAMAÑO DE LA VENTANA
+        self.centralwidget = QtWidgets.QWidget(MainWindow)#TIPO DE OBJETO
+
+        self.centralwidget.setObjectName("centralwidget")
+
+        self.pushButton = QtWidgets.QPushButton(self.centralwidget)#BOTÓN DE TIPO PUSH
+        self.pushButton.setGeometry(QtCore.QRect(260, 110, 111, 31)) # POSICIÓN Y DIMENSIONES DEL BOTÓN
+        self.pushButton.setObjectName("pushButton") #BOTÓN 1
+        self.pushButton.clicked.connect(self.enviar_texto) #conecta la acción de presionar un botón con la función enviar_texto
+        self.pushButton.clicked.connect(self.on_send_button_clicked)
+
+        self.lineEdit = QtWidgets.QLineEdit(self.centralwidget) #ENTRADA DE TIPO TEXTBOX
+        self.lineEdit.setGeometry(QtCore.QRect(20, 110, 231, 31))#POSICIÓN Y TAMAÑO
+        self.lineEdit.setObjectName("lineEdit") #TEXTBOX
+        
+
+        self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)#BOTÓN DE TIPO PUSH
+        self.pushButton_2.setGeometry(QtCore.QRect(260, 70, 111, 31))#POSICIÓN Y TAMAÑO
+        self.pushButton_2.setObjectName("pushButton_2")#BOTÓN2
+        self.pushButton_2.clicked.connect(self.cerrar_programa)
+
+        self.pushButton_3 = QtWidgets.QPushButton(self.centralwidget)#BOTÓN DE TIPO PUSH
+        self.pushButton_3.setGeometry(QtCore.QRect(140, 70, 111, 31))#POSICIÓN Y TAMAÑO
+        self.pushButton_3.setObjectName("pushButton_3")#BOTÓN3
+        self.pushButton_3.clicked.connect(self.recibir_texto)
+
+        self.comboBox = QtWidgets.QComboBox(self.centralwidget)#COMBO BOX
+        self.comboBox.setGeometry(QtCore.QRect(20, 70, 111, 31))#POSICIÓN Y TAMAÑO
+        self.comboBox.setObjectName("comboBox")#NOMBRE DEL OBJETO
+        self.comboBox.addItem("")#ITEM INICIAL
+
+        self.textBrowser = QtWidgets.QTextBrowser(self.centralwidget)
+        self.textBrowser.setGeometry(QtCore.QRect(20, 150, 341, 192))
+        self.textBrowser.setObjectName("textBrowser")#DISPLAY PARA MOSTRAR DATOS
+
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(MainWindow)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 383, 26))
+        self.menubar.setObjectName("menubar")#BARRA DEL MENÚ
+
+        self.menuEnviar_datos = QtWidgets.QMenu(self.menubar)
+        self.menuEnviar_datos.setObjectName("menuEnviar_datos")
+        MainWindow.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
+        self.menubar.addAction(self.menuEnviar_datos.menuAction())
+
+        self.serial_port = None #se le asigna un valor desconocido al puerto serial
+
+
+        self.retranslateUi(MainWindow)#LLAMA A LA FUNCIÓN QUE DA NOMBRES
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):#FUNCIÓN QUE DA NOMBRES A LOS OBJETOS
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "INTERFAZ LAB 10")) # (VENTANA, NOMBRE)
+        self.pushButton.setText(_translate("MainWindow", "SEND")) #LABEL DEL BOTÓN 1
+        self.pushButton_2.setText(_translate("MainWindow", "CLOSE")) #LABEL DEL BOTÓN 2
+        self.pushButton_3.setText(_translate("MainWindow", "RECIBIR")) #LABEL DEL BOTÓN 3
+        self.comboBox.setItemText(0, _translate("MainWindow", "COM ")) # PRIMERA OPCIÓN DEL COMBOBOX
+        self.menuEnviar_datos.setTitle(_translate("MainWindow", "Enviar datos")) #LABEL DEL MENÚ
+
+    #FUNCIONES PARA LOS BOTONES
+    def enviar_texto(self): #función para imprimir un texto enviado por el usuario
+        texto = self.lineEdit.text()
+        aio.send('contadorpic', texto)
+        data = aio.receive('contadorpic')
+        #valor_enviado = "EL valor enviado ha sido: " + str(texto) #EN UNA CADENA DE STRINGS, JUNTA EL VALOR ENVIADO Y LAS PALABRAS
+        #print('Valor Enviado a Adafruit: {0}'.format(data.value))
+        self.textBrowser.append('Valor Enviado a Adafruit: {0}'.format(data.value))#MUESTRA EL VALOR EN EL TEXTBROWSER
+    
+    def recibir_texto(self):
+        data = aio.receive('valorenviar')
+        self.textBrowser.append('Valor Recibido al Puerto: {0}'.format(data.value))
+        
+
+    def cerrar_programa(self):
+         sys.exit(app.exec_())
+    #FIN DE LAS FUNCIONES PARA LOS BOTONES
+
+    #FUNCIONES SERIALES
+    def on_send_button_clicked(self):
+        
+        if self.serial_port:
+            message = self.lineEdit.text().encode() #obtiene el valor del textbox1
+            self.serial_port.write(message) #escribe en el seria el valor obtenido
+            self.lineEdit.setText("")#limpia el textbox
+            print(message.decode())
+    #FIN DE LAS FUNCIONES SERIALES
+
+    
+    
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())#cierra el programa
+    
 
